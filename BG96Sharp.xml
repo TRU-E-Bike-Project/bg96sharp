@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BG96Sharp</name>
+    </assembly>
+    <members>
+        <member name="T:BG96Sharp.ATCommandResultCode">
+            <summary>
+            Indicates the result of an AT command.
+            See BG96_AT_Commands_Manual V2.3 page 20 for details.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.OK">
+            <summary>
+            Acknowledges execution of a command.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.Connect">
+            <summary>
+            A connection has been established. The DCE is moving from command mode to data mode.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.Ring">
+            <summary>
+            The DCE has detected an incoming call signal from network.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.NoCarrier">
+            <summary>
+            The connection has been terminated or the attempt to establish a connection failed.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.Error">
+            <summary>
+            Command not recognized, command line maximum length exceeded, parameter value invalid, or other problem with processing the command line.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.NoDialtone">
+            <summary>
+            No dial tone detected.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.Busy">
+            <summary>
+            Engaged (busy) signal detected.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.ATCommandResultCode.NoAnswer">
+            <summary>
+            “@” (Wait for Quiet Answer) dial modifier was used, but remote ringing followed by five seconds of silence was not detected before expiration of the connection timer (S7).
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.CommonATCommands">
+            <summary>
+            Creates ATCommand objects for commonly used AT commands.
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.BaseATCommand">
+            <summary>
+            A default AT command, that will expect a <see cref="T:BG96Sharp.ATCommandResultCode"/> in response.
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.ATCommandWithReply">
+            <summary>
+            An AT command that will expect a different response than an <see cref="T:BG96Sharp.ATCommandResultCode"/>. If that is not desired behavior, use <see cref="T:BG96Sharp.BaseATCommand"/>
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.Startup">
+            <summary>
+            Reset and start module.
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.PowerDown">
+            <summary>
+            Safely power down the module.
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.ResetModule(System.Boolean)">
+            <summary>
+            Saves configuration and resets the BG96 module
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.GetSignalQualityAsync">
+            <summary>
+            Retrieves the signal quality.
+            </summary>
+            <returns>
+            Returns tuple representing RSSI and bitrate error (in percent). 
+            </returns>
+        </member>
+        <member name="M:BG96Sharp.BG9x.ConnectToOperatorAsync">
+            <inheritdoc cref="M:BG96Sharp.BG9x.AttachPacketServiceAsync"/>
+            <seealso cref="M:BG96Sharp.BG9x.AttachPacketServiceAsync"/>
+        </member>
+        <member name="M:BG96Sharp.BG9x.AttachPacketServiceAsync">
+            <summary>
+            Attaches module to the Packet Service.
+            See "AT Commands" Chapter 9.1 for more information.
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.GetNetworkRegistrationStatusAsync">
+            <summary>
+            Get current network registration status from device
+            </summary>
+        </member>
+        <member name="M:BG96Sharp.BG9x.TurnOnGNSSAsync(BG96Sharp.GNSSMode,System.Int32,System.Int32,System.Int32,System.Int32)">
+             <summary>
+            
+             
+             </summary>
+             <param name="mode">GNSS working mode</param>
+             <param name="fixMaxTime">The maximum positioning time (unit: s). which indicate the response time of GNSS receiver while measuring the GNSS pseudo range, and the upper time limit of GNSS satellite searching. It also includes the time for demodulating the ephemeris data and calculating the position. 1-30-255 Maximum positioning time</param>
+             <param name="fixMaxDistance">Accuracy threshold of positioning. Unit: m. 1-50-1000</param>
+             <param name="fixCounts">Number of attempts for positioning. 0–1000. 0 indicates continuous positioning. Non-zero values indicate the actual number of attempts for positioning.</param>
+             <param name="fixRate">The interval time between the first and second time positioning. Unit: s. 1–65535</param>
+        </member>
+        <member name="M:BG96Sharp.BG9xMqttClient.ConnectMQTTClientAsync">
+            <summary>
+            Used to create an MQTT client and connect it to an MQTT server
+            </summary>
+            <param name="tcpConnectID">MQTT socket identifier. <see cref="!:OpenMQTTNetworkClient(int, string, int)"/></param>
+            <param name="clientID">Client idenfitier string</param>
+            <param name="username">(Optional) Username for MQTT authentication</param>
+            <param name="password">(Optional) Password for MQTT authentication</param>
+            <returns></returns>
+        </member>
+        <member name="T:BG96Sharp.IATCommandClient">
+            <summary>
+            Specifies that a class provides a way to communicate with a device through AT commands
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.BaseNetworkRegistrationStatus">
+            <summary>
+            Provides basic network registration status information. For more information, check if this object is of type <see cref="T:BG96Sharp.FullNetworkRegistrationStatus"/>
+            </summary>
+        </member>
+        <member name="P:BG96Sharp.BaseNetworkRegistrationStatus.Status">
+            <inheritdoc cref="T:BG96Sharp.UnsolicitedNetworkRegistrationCode"/>
+        </member>
+        <member name="M:BG96Sharp.BaseNetworkRegistrationStatus.FromResponse(System.String)">
+            <summary>
+            Create a network registration status object.
+            </summary>
+            <param name="response">Response message from serial port</param>
+            <returns>A <see cref="T:BG96Sharp.FullNetworkRegistrationStatus" /> if the data is available; otherwise, creates a <see cref="T:BG96Sharp.BaseNetworkRegistrationStatus"/></returns>
+        </member>
+        <member name="T:BG96Sharp.FullNetworkRegistrationStatus">
+            <summary>
+            Provides full network registration information.
+            </summary>
+        </member>
+        <member name="P:BG96Sharp.FullNetworkRegistrationStatus.NetworkRegistrationUnsolicitedResultCodeState">
+            <summary>
+            Current state of unsolicited network status messages. If enabled, the module will send messages when network status changes on its own.
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.UnsolicitedNetworkRegistrationCode">
+            <summary>
+            Code representing whether the module will send unsolicited network registration information
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.UnsolicitedNetworkRegistrationCode.Unknown">
+            <summary>
+            (Used by library) Unknown registration status
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.UnsolicitedNetworkRegistrationCode.Disabled">
+            <summary>
+            Disable network registration unsolicited result code
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.UnsolicitedNetworkRegistrationCode.EnabledStatOnly">
+            <summary>
+            Enable network registration unsolicited result code, with status only
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.UnsolicitedNetworkRegistrationCode.EnabledFull">
+            <summary>
+            Enable network registration and location information unsolicited result code will full information
+            </summary>
+        </member>
+        <member name="T:BG96Sharp.NetworkRegistrationStatusCode">
+            <summary>
+            Code representing current registration status on the mobile network.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.Unregistered">
+            <summary>
+            Not registered. MT is not currently searching an operator to register to.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.RegisteredHomeNetwork">
+            <summary>
+            Registered, home network.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.NotRegisteredSearching">
+            <summary>
+            Not registered, but MT is currently trying to attach or searching an operator to register to.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.RegistrationDenied">
+            <summary>
+            Registration denied.
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.Unknown">
+            <summary>
+            Unknown
+            </summary>
+        </member>
+        <member name="F:BG96Sharp.NetworkRegistrationStatusCode.RegisteredRoaming">
+            <summary>
+            Registered on a roaming network.
+            </summary>
+        </member>
+    </members>
+</doc>
