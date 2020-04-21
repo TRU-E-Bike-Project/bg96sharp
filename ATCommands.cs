@@ -11,6 +11,7 @@ namespace BG96Sharp
     {
         public static ATCommandWithReply PowerDown => new ATCommandWithReply("AT+QPOWD", "POWERED DOWN");
         public static ATCommandWithReply GetIMEI => new ATCommandWithReply("AT+CGSN");
+        public static ATCommandWithReply GetICCID => new ATCommandWithReply("AT+QCCID");
         public static ATCommandWithReply GetFirmwareInfo => new ATCommandWithReply("AT+CGMR");
         public static ATCommandWithReply GetHardwareInfo => new ATCommandWithReply("AT+CGMM");
         public static ATCommandWithReply GetManufacturerInfo => new ATCommandWithReply("AT+CGMI");
