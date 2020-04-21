@@ -66,8 +66,14 @@ namespace BG96Sharp
                 {
                     if (RequestCancel) return;
 
-                    var c = BaseSerialPort.ReadChar(); //this will block the thread until it reads something.
-                    if (c < 0) 
+                    var c = BaseSerialPort.ReadByte(); //this will block the thread until it reads something.
+                    if (c > char.MaxValue)
+                    {
+                        logger.LogError("Read character from serial port that exceeded max char value!");
+                        continue;   
+                    }
+
+                    if (c < 0 ) 
                         break; //means we couldn't read
                     if (c == '>') //we hit an input thing, need to signal to start writing.
                     {
@@ -84,7 +90,11 @@ namespace BG96Sharp
                 {
                     //TODO: start signal
                     if (CurrentBinaryWriteTask == null)
-                        throw new Exception("Binary write task was null but received start character!");
+                    {
+                        logger.LogWarning("Received binary write indicator but no binary write task existed!");
+                        //throw new Exception("Binary write task was null but received start character!");
+                        continue;
+                    }
                     CurrentBinaryWriteTask.SetResult(true);
                     continue;
                 }
@@ -242,5 +252,27 @@ namespace BG96Sharp
         public bool WasCMEError { get; }
         public string CMEError { get; }
         public ATCommandResultCode Result { get; private set; } = ATCommandResultCode.Unknown;
+    }
+
+    public class CellularBandInfoCommandResult : CommandResult
+    {
+        public CellularBandInfoCommandResult(ATCommandResultCode result) : base(result)
+        {
+        }
+
+        public CellularBandInfoCommandResult(bool wasCmeError, string cmeError) : base(wasCmeError, cmeError)
+        {
+        }
+
+        public CellularBandInfoCommandResult(ATCommandResultCode resultCode, GSMBand gsmBand, LTEBand catm1Band, LTEBand nmIotBand) : this(resultCode)
+        {
+            GsmBand = gsmBand;
+            Catm1Band = catm1Band;
+            NmIotBand = nmIotBand;
+        }
+
+        public GSMBand GsmBand { get; }
+        public LTEBand Catm1Band { get; }
+        public LTEBand NmIotBand { get; }
     }
 }

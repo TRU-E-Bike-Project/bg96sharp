@@ -17,17 +17,22 @@ namespace BG96Sharp
     // ReSharper disable once InconsistentNaming
     public abstract class BG9x : ATCommandClient
     {
-        GpioController gpioController;
+        internal GpioController gpioController;
 
         public int ResetPin { get; }
         public int PowerKeyPin { get; }
         public int EnableWakeVBat { get; }
         public List<int> UsedTcpConnectIds { get; } = new List<int>();
+
+        /// <summary>
+        /// Some devices (Sixfab) require the pins to be pulled low to send power to the device, others require these pins to be driven high (AVNet). 
+        /// </summary>
+        public bool PullEnableLow { get; set; } = false;
         
-        private ILogger logger;
+        internal ILogger logger;
 
         //Mapping: D7 -> GPIO16; D11 -> GPIO20; D10 -> GPIO21
-        protected BG9x(ILogger logger, string serialPort, int enablePin = 20, int resetPin = 16, int pinPowerKey = 21) : base(serialPort, logger)
+        protected BG9x(ILogger logger, string serialPort, int enablePin, int resetPin, int pinPowerKey) : base(serialPort, logger)
         {
             this.logger = logger;
             PowerKeyPin = pinPowerKey;
@@ -56,7 +61,6 @@ namespace BG96Sharp
         {
             logger.LogInformation("Powering down module.");
             var result = await SendATCommandAsync(CommonATCommands.PowerDown).ConfigureAwait(false); //should wait 65s
-            //now status pin should be set to LOW
             CloseSerialPort();
         }
 
@@ -100,7 +104,7 @@ namespace BG96Sharp
             //Heavily inspired by https://github.com/Avnet/BG96-driver/blob/master/BG96/BG96.cpp > BG96::reset(void)
             if (saveConfig)
             {
-                SaveConfigurations();
+                SaveConfigurationsAsync();
                 Thread.Sleep(200);
             }
 
@@ -123,16 +127,87 @@ namespace BG96Sharp
             logger.LogInformation("Power cycle complete.");
         }
         
-        public async Task<CommandResult> SetGSMBandAsync(string gsmBand)
+        public async Task<CommandResult> SetGSMBandAsync(GSMBand gsmBand)
         {
-            var command = $"AT+QCFG=\"band\",{gsmBand},{LTEBands.LTE_NO_CHANGE},{LTEBands.LTE_NO_CHANGE}";
+            var command = $"AT+QCFG=\"band\",{gsmBand:X},{LTEBand.LTE_NO_CHANGE:X},{LTEBand.LTE_NO_CHANGE:X}";
             return await SendATCommandAsync(command).ConfigureAwait(false);
         }
 
+        public async Task<CommandResult> SetCATM1BandAsync(LTEBand catm1band)
+        {
+            var command = $"AT+QCFG=\"band\",{GSMBand.GSM_NO_CHANGE:X},{catm1band:X},{LTEBand.LTE_NO_CHANGE:X}";
+            return await SendATCommandAsync(command).ConfigureAwait(false);
+        }
 
-        public Task<CommandResult> SaveConfigurations()
+        public async Task<CommandResult> SetNBIOTBandAsync(LTEBand nbiotband)
+        {
+            var command = $"AT+QCFG=\"band\",{GSMBand.GSM_NO_CHANGE:X},{LTEBand.LTE_NO_CHANGE:X},{nbiotband:X}";
+            return await SendATCommandAsync(command).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Requests current cellular band configuration from the device.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<CellularBandInfoCommandResult> GetBandConfigurationAsync()
+        {
+            var result = await SendATCommandAsync(CommonATCommands.GetBandConfiguration).ConfigureAwait(false);
+            result.Result.ThrowIfError();
+
+            var regexResult = Regex.Match(result.Response, @"\+QCFG: ""band"",(0[xX][0-9a-fA-F]+),(0[xX][0-9a-fA-F]+),(0[xX][0-9a-fA-F]+)");
+            var res = new CellularBandInfoCommandResult(result.Result.Result, (GSMBand)Convert.ToInt32(regexResult.Groups[1].Value, 16), (LTEBand)Convert.ToInt64(regexResult.Groups[2].Value, 16), (LTEBand)Convert.ToInt64(regexResult.Groups[3].Value, 16));
+            return res;
+        }
+
+        /// <summary>
+        /// Sets the BG96 to operate in the supplied cellular mode. 
+        /// This does not save the configuration to the device. 
+        /// </summary>
+        public async Task<CommandResult> SetCellularModeAsync(CellularMode mode)
+        {
+            logger.LogInformation("Setting cellular mode to " + mode.ToString());
+
+            var result = await SendATCommandAsync($"AT+QCFG=\"nwscanseq\",0{(int)mode},1").ConfigureAwait(false);
+            result.ThrowIfError();
+
+            var scanMode = mode switch {
+                CellularMode.CATM1_MODE => 3,
+                CellularMode.CATNB1_MODE => 3,
+                CellularMode.GSM_Mode => 1,
+                CellularMode.AutoMode => 0,
+                _ => throw new Exception("Invalid cellular mode")
+            };
+
+            result = await SendATCommandAsync($"AT+QCFG=\"nwscanmode\",{scanMode},1").ConfigureAwait(false);
+            result.ThrowIfError();
+
+            //TODO: this isn't supported on BG96-M according to docs. 
+            var iotopMode = mode switch
+            {
+                CellularMode.CATM1_MODE => LteRatMode.CatM1,
+                CellularMode.CATNB1_MODE => LteRatMode.CatNB1,
+                _ => LteRatMode.CatM1CatNB1
+            };
+
+            result = await SendATCommandAsync($"AT+QCFG=\"iotopmode\",{(int)iotopMode},1").ConfigureAwait(false);
+            result.ThrowIfError();
+            return result;
+        }
+
+        /// <summary>
+        /// Tells the device to save its current confurations to memory. 
+        /// </summary>
+        public Task<CommandResult> SaveConfigurationsAsync()
         {
             return SendATCommandAsync(CommonATCommands.SaveConfigurations);
+        }
+
+        public async Task<(CommandResult, string)> GetIccidAsync()
+        {
+            var commandResult = await SendATCommandAsync(CommonATCommands.GetICCID).ConfigureAwait(false);
+            commandResult.Result.ThrowIfError();
+            var iccid = Regex.Match(commandResult.Response, @"\+QCCID: (\d+)").Groups[1].Value;
+            return (commandResult.Result, iccid);
         }
         
         /// <summary>
@@ -141,7 +216,7 @@ namespace BG96Sharp
         /// <returns>
         /// Returns tuple representing RSSI and bitrate error (in percent). 
         /// </returns>
-        public async Task<(int, int)> GetSignalQualityAsync()
+        public async Task<(int rssi, int bitrate)> GetSignalQualityAsync()
         {
             var commandResult = await SendATCommandAsync(CommonATCommands.GetSignalQuality).ConfigureAwait(false);
             commandResult.Result.ThrowIfError();
@@ -180,6 +255,13 @@ namespace BG96Sharp
         }
 
         //public Operator GetOperator() => new Operator(SendATCommand("AT+COPS?"));
+
+        public async Task<CommandResult> ConfigureAPNAsync(string apn, string username = "", string password = "", int apnContext = 1, int authenticationMode = 0)
+        {
+            var commandResult = await SendATCommandAsync($"AT+QICSGP={apnContext},1,\"{apn}\",\"{username}\",\"{password}\",{authenticationMode}");
+            commandResult.ThrowIfError();
+            return commandResult;
+        }
         
         
         #region GNSS
@@ -226,11 +308,11 @@ namespace BG96Sharp
         //    SendATCommand("AT+QGPSDEL=" + deleteType);
         //}
 
-        public async Task<PositioningInformation> GetGNSSPositionAsync()
+        public async Task<PositioningInformation> GetGNSSPositionAsync(PositionDisplayFormatMode mode = PositionDisplayFormatMode.PositiveNegativeLatLong)
         {
-            var result = await SendATCommandAsync(new ATCommandWithReply("AT+QGPSLOC=1", "+QGPSLOC: "));
+            var result = await SendATCommandAsync(new ATCommandWithReply("AT+QGPSLOC=" + (int)mode, "+QGPSLOC: "));
             result.Result.ThrowIfError();
-            var response = new PositioningInformation(result.Response);
+            var response = new PositioningInformation(result.Response, mode);
             return response;
         }
 

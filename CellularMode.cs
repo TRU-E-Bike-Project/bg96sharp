@@ -2,9 +2,9 @@
 {
     public enum CellularMode
     {
-        AutoMode,
-        GSM_Mode,
-        CATM1_MODE,
-        CATNB1_MODE
+        AutoMode = 0,
+        GSM_Mode = 1,
+        CATM1_MODE = 2,
+        CATNB1_MODE = 3
     }
 }
