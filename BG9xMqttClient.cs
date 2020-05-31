@@ -29,6 +29,9 @@ namespace BG96Sharp
         private BG9x _module;
         private ILogger logger;
 
+        public event MqttMessageReceivedHandler MessageReceived;
+        public event EventHandler Connected;
+
         public BG9xMqttClient(BG9x module, ILogger logger, string hostname, int port, string clientID)
         {
             _module = module;
@@ -100,8 +103,13 @@ namespace BG96Sharp
             {
                 CurrentTcpConnectId = tcpConnectId;
                 var (executionResult, returnCode) = await ConnectMQTTClientAsync();
-                return executionResult == NetworkCommandExecutionResult.PacketSendSuccessfully &&
+                var success = executionResult == NetworkCommandExecutionResult.PacketSendSuccessfully &&
                        returnCode == MQTTConnectionStatusReturnCode.ConnectionAccepted;
+
+                if (success)
+                    Connected?.Invoke(this, EventArgs.Empty);
+
+                return success;
             }
             else
             {

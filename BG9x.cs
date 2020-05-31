@@ -241,6 +241,7 @@ namespace BG96Sharp
             return commandResult.Result == ATCommandResultCode.OK;
         }
 
+
         //public string GetNetworkRegStatus() => SendATCommand("AT+CREG?");
 
         /// <summary>
