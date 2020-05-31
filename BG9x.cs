@@ -9,7 +9,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using GPSTrackerSharp.Common;
 using Microsoft.Extensions.Logging;
 
 namespace BG96Sharp
