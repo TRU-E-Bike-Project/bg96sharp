@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Device.Gpio;
 using System.Diagnostics;
-using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using GPSTrackerSharp.Common;
 using Microsoft.Extensions.Logging;
 
 namespace BG96Sharp
