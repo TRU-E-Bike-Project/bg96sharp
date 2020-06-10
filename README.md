@@ -17,3 +17,7 @@ Through NuGet CLI:
 ```
 Install-Package BG96Sharp
 ```
+
+## Documentation
+
+To fully use an understand this repository, you should download Quectels' developer documentation for the BG96 available on their website. 
